@@ -2,24 +2,28 @@ import requests
 import os
 import yaml
 from datetime import datetime, timedelta
-from dateutil import parser
+from dateutil import parser as date_parser
+import argparse
 
 class GOESDownloader:
     def __init__(self):
         """
-        Initializes the downloader with configuration from a YAML file.
+        Initializes the downloader without configuration.
+        """
+        pass
 
+    def initialize(self, config_path):
+        """
+        Loads the configuration from a YAML file and sets up the downloader.
+        
         Parameters:
         config_path (str): Path to the YAML configuration file.
         """
         with open(config_path, 'r') as file:
             self.config = yaml.safe_load(file)
-
-    def initialize(self, config_path):
-
         self.product = self.config['product']
-        self.start_date = parser.parse(self.config['start_date'])
-        self.end_date = parser.parse(self.config['end_date'])
+        self.start_date = date_parser.parse(self.config['start_date'])
+        self.end_date = date_parser.parse(self.config['end_date'])
         self.save_dir = self.config['save_dir']
         self.base_url = self._get_product_url(self.product)
 
@@ -44,16 +48,9 @@ class GOESDownloader:
     def download_goes_west(self):
         """
         Downloads GOES-West images for a specified product from a start date to an end date.
-
-        Parameters:
-        config_path (str): Path to the config file, which will be read to get the following:
-            product (str): The GOES product to download (e.g., 'GeoColor', 'Band 01').
-            start_date (datetime): The starting date for downloading images.
-            end_date (datetime): The ending date for downloading images.
-            save_dir (str): Directory where the images will be saved.
-
+        
         Returns:
-        downloaded_images: downloaded images.
+        downloaded_images: List of downloaded images.
         """
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
@@ -94,5 +91,13 @@ class GOESDownloader:
         return downloaded_images
     
     def download_images(self):
-        if "west" in self.satellite.lower():
-            return self.download_goes_west()
+        return self.download_goes_west()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Download GOES images based on a configuration file.")
+    parser.add_argument('config_path', type=str, help='Path to the YAML configuration file')
+    args = parser.parse_args()
+
+    downloader = GOESDownloader()
+    downloader.initialize(args.config_path)
+    downloaded_images = downloader.download_images()
