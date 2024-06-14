@@ -4,4 +4,4 @@ channels:
 dependencies:
   - requests
   - ipykernel
-  - yaml
+  - pyyaml
