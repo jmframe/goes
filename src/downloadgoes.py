@@ -26,15 +26,17 @@ class GOESDownloader:
         self.end_date = date_parser.parse(self.config['end_date'])
         self.save_dir = self.config['save_dir']
         self.base_url = self._get_product_url(self.product)
+        self.proxies = {
+            "http": "http://130.160.26.252:3128",
+            "https": "http://130.160.26.252:3128"
+        }
 
     def _get_product_url(self, product):
         """ Helper function to get the base URL for a given product """
         product_urls = {
+            "AirMass":  "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/AirMass/",
+            "GEOCOLOR": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/GEOCOLOR/",
             "Sandwich": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/Sandwich/",
-            "DMW": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/DMW/",
-            "DayNightCloudMicroCombo": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/DayNightCloudMicroCombo/",
-            "FireTemperature": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/FireTemperature/",
-            "Dust": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/Dust/"
         }
         for i in range(1, 17):
             band_key = f"{str(i).zfill(2)}"
@@ -67,9 +69,15 @@ class GOESDownloader:
                     url = f"{self.base_url}{timestamp}_GOES18-ABI-CONUS-{self.product}-416x250.jpg"
 
                     try:
-                        response = requests.get(url, stream=True, timeout=10)
+                        response = requests.get(url, stream=True, timeout=10, proxies=self.proxies)
                         if response.status_code == 200:
                             image_path = os.path.join(self.save_dir, f"{self.product}_{timestamp}.jpg")
+
+                            # Check if file already exists
+                            if os.path.exists(image_path):
+                                print(f"File already exists: {image_path}")
+                                continue
+
                             with open(image_path, 'wb') as f:
                                 for chunk in response:
                                     f.write(chunk)
