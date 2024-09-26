@@ -24,6 +24,7 @@ class GOESDownloader:
         self.product = self.config['product']
         self.start_date = date_parser.parse(self.config['start_date'])
         self.end_date = date_parser.parse(self.config['end_date'])
+        self.satellite = self.config['satellite']
         self.save_dir = self.config['save_dir']
         self.base_url = self._get_product_url(self.product)
         self.proxies = {
@@ -34,20 +35,20 @@ class GOESDownloader:
     def _get_product_url(self, product):
         """ Helper function to get the base URL for a given product """
         product_urls = {
-            "AirMass":  "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/AirMass/",
-            "GEOCOLOR": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/GEOCOLOR/",
-            "Sandwich": "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/Sandwich/",
+            "AirMass":  f"https://cdn.star.nesdis.noaa.gov/GOES{self.satellite}/ABI/CONUS/AirMass/",
+            "GEOCOLOR": f"https://cdn.star.nesdis.noaa.gov/GOES{self.satellite}/ABI/CONUS/GEOCOLOR/",
+            "Sandwich": f"https://cdn.star.nesdis.noaa.gov/GOES{self.satellite}/ABI/CONUS/Sandwich/",
         }
         for i in range(1, 17):
             band_key = f"{str(i).zfill(2)}"
-            product_urls[band_key] = f"https://cdn.star.nesdis.noaa.gov/GOES18/ABI/CONUS/{str(i).zfill(2)}/"
+            product_urls[band_key] = f"https://cdn.star.nesdis.noaa.gov/GOES{self.satellite}/ABI/CONUS/{str(i).zfill(2)}/"
         
         base_url = product_urls.get(product)
         if not base_url:
             raise ValueError(f"Product '{product}' not found in available products.")
         return base_url
     
-    def download_goes_west(self):
+    def download_goes(self):
         """
         Downloads GOES-West images for a specified product from a start date to an end date.
         
@@ -66,9 +67,11 @@ class GOESDownloader:
             for hour in range(start_hour, 24):
                 for minute in range(60):
                     timestamp = current_date.replace(hour=hour, minute=minute, second=0, microsecond=0).strftime('%Y%j%H%M')
-                    url = f"{self.base_url}{timestamp}_GOES18-ABI-CONUS-{self.product}-416x250.jpg"
+
+                    url = f"{self.base_url}{timestamp}_GOES{self.satellite}-ABI-CONUS-{self.product}-416x250.jpg"
 
                     try:
+                        print(url)
                         response = requests.get(url, stream=True, timeout=10, proxies=self.proxies)
                         if response.status_code == 200:
                             image_path = os.path.join(self.save_dir, f"{self.product}_{timestamp}.jpg")
@@ -77,7 +80,7 @@ class GOESDownloader:
                             if os.path.exists(image_path):
                                 print(f"File already exists: {image_path}")
                                 continue
-
+    
                             with open(image_path, 'wb') as f:
                                 for chunk in response:
                                     f.write(chunk)
@@ -97,10 +100,7 @@ class GOESDownloader:
                     break
 
         return downloaded_images
-    
-    def download_images(self):
-        return self.download_goes_west()
-
+            
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download GOES images based on a configuration file.")
     parser.add_argument('config_path', type=str, help='Path to the YAML configuration file')
@@ -108,4 +108,4 @@ if __name__ == "__main__":
 
     downloader = GOESDownloader()
     downloader.initialize(args.config_path)
-    downloaded_images = downloader.download_images()
+    downloaded_images = downloader.download_goes()
