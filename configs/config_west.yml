@@ -1,5 +1,8 @@
-product: "GEOCOLOR"
-start_date: "2024-09-20 14:00:00"
-end_date: "2024-09-23 19:00:00"
+products:
+  - AirMass
+  - GEOCOLOR
+  - Sandwich
+start_date: "2024-10-07 12:00:00"
+end_date: "2024-10-09 12:00:00"
 save_dir: "/home/jmframe/data/goes/west"
 satellite: "18"

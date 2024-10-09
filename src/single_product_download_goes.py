@@ -21,13 +21,12 @@ class GOESDownloader:
         """
         with open(config_path, 'r') as file:
             self.config = yaml.safe_load(file)
-        
-        # Support multiple products
-        self.products = self.config['products']  # Expecting a list of products now
+        self.product = self.config['product']
         self.start_date = date_parser.parse(self.config['start_date'])
         self.end_date = date_parser.parse(self.config['end_date'])
         self.satellite = self.config['satellite']
         self.save_dir = self.config['save_dir']
+        self.base_url = self._get_product_url(self.product)
         self.proxies = {
             "http": "http://130.160.26.252:3128",
             "https": "http://130.160.26.252:3128"
@@ -51,7 +50,7 @@ class GOESDownloader:
     
     def download_goes(self):
         """
-        Downloads GOES-West images for multiple products from a start date to an end date.
+        Downloads GOES-West images for a specified product from a start date to an end date.
         
         Returns:
         downloaded_images: List of downloaded images.
@@ -69,31 +68,30 @@ class GOESDownloader:
                 for minute in range(60):
                     timestamp = current_date.replace(hour=hour, minute=minute, second=0, microsecond=0).strftime('%Y%j%H%M')
 
-                    for product in self.products:
-                        url = f"{self._get_product_url(product)}{timestamp}_GOES{self.satellite}-ABI-CONUS-{product}-416x250.jpg"
-                        
-                        try:
-                            print(url)
-                            response = requests.get(url, stream=True, timeout=10, proxies=self.proxies)
-                            if response.status_code == 200:
-                                image_path = os.path.join(self.save_dir, f"{product}_{timestamp}.jpg")
+                    url = f"{self.base_url}{timestamp}_GOES{self.satellite}-ABI-CONUS-{self.product}-416x250.jpg"
 
-                                # Check if file already exists
-                                if os.path.exists(image_path):
-                                    print(f"File already exists: {image_path}")
-                                    continue
+                    try:
+                        print(url)
+                        response = requests.get(url, stream=True, timeout=10, proxies=self.proxies)
+                        if response.status_code == 200:
+                            image_path = os.path.join(self.save_dir, f"{self.product}_{timestamp}.jpg")
 
-                                with open(image_path, 'wb') as f:
-                                    for chunk in response:
-                                        f.write(chunk)
-                                downloaded_images.append(image_path)
-                                with open(logfile, 'a') as log:
-                                    log.write(f"{image_path}\n")
-                                print(f"Downloaded: {url}")
-                            else:
-                                print(f"No image found at: {url}")
-                        except requests.RequestException as e:
-                            print(f"Error accessing {url}: {e}")
+                            # Check if file already exists
+                            if os.path.exists(image_path):
+                                print(f"File already exists: {image_path}")
+                                continue
+    
+                            with open(image_path, 'wb') as f:
+                                for chunk in response:
+                                    f.write(chunk)
+                            downloaded_images.append(image_path)
+                            with open(logfile, 'a') as log:
+                                log.write(f"{image_path}\n")
+                            print(f"Downloaded: {url}")
+                        else:
+                            print(f"No image found at: {url}")
+                    except requests.RequestException as e:
+                        print(f"Error accessing {url}: {e}")
                     current_date += timedelta(minutes=1)
 
                     if current_date >= self.end_date:
